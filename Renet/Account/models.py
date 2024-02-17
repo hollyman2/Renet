@@ -1,3 +1,4 @@
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser,PermissionsMixin
 from django.utils.translation import gettext_lazy as _
@@ -5,7 +6,6 @@ from .manager import CustomUserManager
 import jwt
 from django.conf import settings
 from datetime import datetime, timedelta
-
 
 
 class Account(AbstractBaseUser, PermissionsMixin):
@@ -64,3 +64,40 @@ class Account(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
     
+
+class Profile(models.Model):
+    IMAGE_VALIDATOR = FileExtensionValidator(allowed_extensions=['JPG', 'JPEG'])
+
+    user = models.OneToOneField(
+        Account,
+        on_delete=models.CASCADE,
+    )
+    picture = models.ImageField(
+        'Picture',
+        upload_to='profiles_pictures/images/%Y/%m/%d/',
+        validators=[IMAGE_VALIDATOR,]
+    )
+    banner = models.ImageField(
+        'Banner',
+        upload_to='profiles_pictures/images/%Y/%m/%d/',
+        validators=[IMAGE_VALIDATOR,]
+    )
+    description = models.TextField(
+        'Description',
+        max_length=255
+    )
+    age = models.DecimalField(
+        'Age',
+        decimal_places=3,
+        max_digits=100,
+    )
+
+    def __str__(self):
+        return self.user
+
+    class Meta:
+        verbose_name = 'Profile'
+        verbose_name_plural = 'Profiles'
+
+
+
