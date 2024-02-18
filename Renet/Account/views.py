@@ -1,4 +1,5 @@
-from django.contrib.auth import login, get_user_model
+from django.contrib.auth import login, get_user_model, authenticate
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.shortcuts import render, redirect
@@ -9,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse_lazy
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from . import serializers
 
@@ -67,11 +69,9 @@ class ActivateAccountAPIView(APIView):
             user.is_active = True
             user.save()
 
-            # Генерация JWT токенов
             refresh = RefreshToken.for_user(user)
             access_token = refresh.access_token
 
-            # Установка токенов в cookies
             response = Response({
                 'email': user.email,
                 'first_name': user.first_name,
@@ -82,9 +82,9 @@ class ActivateAccountAPIView(APIView):
             response.set_cookie(
                 'refresh_token',
                 str(refresh),
-                httponly=True,  # Важно для безопасности, делает cookie недоступным для JavaScript на клиенте
-                samesite='Strict',  # Помогает предотвратить CSRF-атаки
-                path='/api/token/refresh/'  # Указывает, где cookie должен быть отправлен
+                httponly=True,
+                samesite='Strict',
+                path='/api/token/refresh/'
             )
             response.set_cookie(
                 'access_token',
@@ -100,3 +100,44 @@ class ActivateAccountAPIView(APIView):
                 {"error": "Ссылка активации недействительна или истекла"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+class LoginAPIView(APIView):
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        user = authenticate(request, email=email, password=password)
+
+        if user is not None:
+            refresh = RefreshToken.for_user(user)
+
+            response = Response()
+            response.set_cookie(
+                key='refresh_token',
+                value=str(refresh),
+                httponly=True,
+                samesite='Lax',
+                secure=True,
+                path='/api/token/refresh/',
+            )
+            response.data = {
+                'access': str(refresh.access_token),
+            }
+
+            return response
+        return Response(
+            {'detail': 'Неверные учетные данные.'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+
+class LogoutAPIView(APIView):
+    def post(self, request):
+        response = Response()
+        response.delete_cookie(
+            'refresh_token',
+            path='/api/token/refresh/'
+        )
+        response.data = {"message": "Вы успешно вышли из системы."}
+        return response

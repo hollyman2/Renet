@@ -1,6 +1,7 @@
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 Account = get_user_model()
 
@@ -25,3 +26,5 @@ class SignupSerializer(ModelSerializer):
             password=validated_data.get('password'),
         )
         return account
+
+
