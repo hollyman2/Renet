@@ -14,7 +14,7 @@ class Account(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(_("last_name"), max_length=50)
     email = models.EmailField(_("email"), unique=True, max_length=254)
     password = models.CharField(_("password"), max_length=50)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
     objects = CustomUserManager()

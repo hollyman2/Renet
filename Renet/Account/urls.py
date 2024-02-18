@@ -5,5 +5,5 @@ app_name = 'accounts'
 
 urlpatterns = [
     path('signup/', views.SignUpAPIView.as_view(), name='signup'),
-    path('active/', views.ActivateAccountAPIView.as_view(), name='activate')
+    path('activate/<uidb64>/<token>/', views.ActivateAccountAPIView.as_view(), name='activate')
 ]

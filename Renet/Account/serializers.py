@@ -8,7 +8,13 @@ Account = get_user_model()
 class SignupSerializer(ModelSerializer):
     class Meta:
         model = Account
-        fields = '__all__'
+        fields = [
+            'email',
+            'first_name',
+            'last_name',
+            'username',
+            'password'
+        ]
 
     def create(self, validated_data):
         account = Account.objects.create_user(
