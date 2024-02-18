@@ -1,27 +1,29 @@
-from django.contrib.auth import login
+from django.contrib.auth import login, get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.shortcuts import render, redirect
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from rest_framework.authtoken.admin import User
 from rest_framework.reverse import reverse_lazy
 from rest_framework.views import APIView
 
-from Renet.Account import serializers
+from . import serializers
+
+User = get_user_model()
 
 
 class SignUpAPIView(APIView):
 
     def post(self, request):
         serializer = serializers.SignupSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
         token = default_token_generator.make_token(user)
 
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
         activation_link = self.request.build_absolute_uri(
-            reverse_lazy('account:activate', kwargs={'uidb64': uidb64, 'token': token})
+            reverse_lazy('accounts:activate', kwargs={'uidb64': uidb64, 'token': token})
         )
 
         subject = 'Активация учетной записи'

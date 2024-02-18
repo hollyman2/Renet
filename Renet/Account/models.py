@@ -3,7 +3,6 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser,PermissionsMixin
 from django.utils.translation import gettext_lazy as _
 from .manager import CustomUserManager
-import jwt
 from django.conf import settings
 from datetime import datetime, timedelta
 
@@ -11,8 +10,8 @@ from datetime import datetime, timedelta
 class Account(AbstractBaseUser, PermissionsMixin):
 
     username = models.CharField(_("username"), max_length=50)
-    first_name = models.CharField(_("username"), max_length=50)
-    last_name = models.CharField(_("username"), max_length=50)
+    first_name = models.CharField(_("first_name"), max_length=50)
+    last_name = models.CharField(_("last_name"), max_length=50)
     email = models.EmailField(_("email"), unique=True, max_length=254)
     password = models.CharField(_("password"), max_length=50)
     is_active = models.BooleanField(default=True)
