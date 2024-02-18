@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.reverse import reverse_lazy
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from . import serializers
 
@@ -52,34 +53,50 @@ class SignUpAPIView(APIView):
 
 
 class ActivateAccountAPIView(APIView):
-    """
-    API View для активации учетной записи пользователя.
-    """
+    permission_classes = []
+    authentication_classes = []
 
     def get(self, request, uidb64, token):
         try:
             uid = urlsafe_base64_decode(uidb64).decode()
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            user = None
+            return Response({"error": "Ссылка активации недействительна или истекла"}, status=status.HTTP_400_BAD_REQUEST)
 
         if user is not None and default_token_generator.check_token(user, token):
             user.is_active = True
             user.save()
-        else:
-            return Response(
-                {
-                    "error": "Ссылка активации недействительна или истекла"
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
-        return Response(
-            {
-                'email': user.username,
+            # Генерация JWT токенов
+            refresh = RefreshToken.for_user(user)
+            access_token = refresh.access_token
+
+            # Установка токенов в cookies
+            response = Response({
+                'email': user.email,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
                 'username': user.username
-            },
-            status=status.HTTP_200_OK
-        )
+            }, status=status.HTTP_200_OK)
+
+            response.set_cookie(
+                'refresh_token',
+                str(refresh),
+                httponly=True,  # Важно для безопасности, делает cookie недоступным для JavaScript на клиенте
+                samesite='Strict',  # Помогает предотвратить CSRF-атаки
+                path='/api/token/refresh/'  # Указывает, где cookie должен быть отправлен
+            )
+            response.set_cookie(
+                'access_token',
+                str(access_token),
+                httponly=True,
+                samesite='Strict',
+                path='/'
+            )
+
+            return response
+        else:
+            return Response(
+                {"error": "Ссылка активации недействительна или истекла"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
