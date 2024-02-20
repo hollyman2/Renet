@@ -35,7 +35,11 @@ class Post(models.Model):
         'Description',
         max_length=500,
     )
-    tags = TaggableManager()
+    count_of_likes = models.IntegerField(
+        'Count of likes',
+        default=0
+    )
+    tags = TaggableManager(blank=True)
     author = models.ForeignKey(
         Account,
         on_delete=models.CASCADE,
@@ -46,6 +50,9 @@ class Post(models.Model):
         'Date created',
         auto_now_add=True
     )
+
+    def __str__(self):
+        return self.description[:50]
 
     def get_absolute_url(self):
         return reverse(
@@ -71,13 +78,18 @@ class Comment(models.Model):
         'Description',
         max_length=500,
     )
+    count_of_likes = models.IntegerField(
+        'Count of likes',
+        default=0
+    )
 
     def __str__(self):
         return self.description[:50]
 
     class Meta:
-        verbose_name = 'Post'
-        verbose_name_plural = 'Posts'
+        verbose_name = 'Comment'
+        verbose_name_plural = 'Comments'
+
 
 class ReplyComment(Comment):
     comment = models.ForeignKey(
@@ -90,5 +102,41 @@ class ReplyComment(Comment):
         return self.comment.description[:50]
 
     class Meta:
-        verbose_name = 'Repy to comment'
+        verbose_name = 'Reply to comment'
         verbose_name_plural = 'Replies to comment'
+
+
+class Like(models.Model):
+    user = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='get_user_likes',
+        verbose_name='User'
+    )
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name='get_post_likes',
+        verbose_name='Liked post',
+        null=True,
+        blank=True
+    )
+    comment = models.ForeignKey(
+        Comment,
+        on_delete=models.CASCADE,
+        related_name='get_comment_likes',
+        verbose_name='Liked comment',
+        null=True,
+        blank=True
+    )
+    reply_comment = models.ForeignKey(
+        ReplyComment,
+        on_delete=models.CASCADE,
+        related_name='get_reply_comment_likes',
+        verbose_name='Liked reply comment',
+        null=True,
+        blank=True
+    )
+
+    def __str__(self):
+        return self.user.username
