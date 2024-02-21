@@ -27,4 +27,9 @@ urlpatterns = [
         views.EmailChangeConfirmAPIView.as_view(),
         name='email_change_confirm'
     ),
+    path(
+        'add-follower/<str:username>/',
+        views.AddFollowerAPIView.as_view(),
+        name='add-follower'
+    )
 ]

@@ -6,6 +6,7 @@ from django.shortcuts import render, redirect
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.reverse import reverse_lazy
 from rest_framework.views import APIView
@@ -136,6 +137,7 @@ class LoginAPIView(APIView):
 
 
 class LogoutAPIView(APIView):
+    permission_classes = [IsAuthenticated, ]
     def post(self, request):
         response = Response()
         response.delete_cookie(
@@ -226,6 +228,7 @@ class PasswordResetConfirmAPIView(APIView):
 
 
 class EmailChangeAPIView(APIView):
+    permission_classes = [IsAuthenticated, ]
     def post(self, request, *args, **kwargs):
         try:
             decoded_data = AccessToken(
@@ -277,6 +280,7 @@ class EmailChangeAPIView(APIView):
 
 
 class EmailChangeConfirmAPIView(APIView):
+    permission_classes = [IsAuthenticated, ]
     def get(self, request, uidb64, token, *args, **kwargs):
         try:
             email = urlsafe_base64_decode(uidb64).decode()
@@ -298,3 +302,26 @@ class EmailChangeConfirmAPIView(APIView):
                 {'error': 'Неверный запрос.'},
                 status=400
             )
+
+
+class AddFollowerAPIView(APIView):
+    permission_classes = [IsAuthenticated, ]
+
+    def post(self, request, username, *args, **kwargs):
+        follower = request.user
+        user = User.objects.get(username=username)
+
+        serializer = serializers.FollowerSerializer(
+            data={
+                'user': user,
+                'follower': follower
+            }
+        )
+        if serializer.is_valid():
+            follower_user = serializer.validated_data['follower']
+            if request.user != follower_user:
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"error": "Вы не можете подписаться на самого себя."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

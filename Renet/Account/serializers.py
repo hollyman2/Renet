@@ -5,6 +5,8 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from Account.models import Follower
+
 Account = get_user_model()
 
 
@@ -63,3 +65,9 @@ class EmailChangeSerializer(serializers.Serializer):
         email_validator = EmailValidator()
         email_validator(attrs.get('new_email'))
         return super().validate(attrs)
+
+
+class FollowerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Follower
+        fields = ['user', 'follower']

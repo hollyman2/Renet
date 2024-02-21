@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import render, get_object_or_404
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
@@ -12,17 +13,10 @@ User = get_user_model()
 
 
 class LikeAPIView(APIView):
+    permission_classes = [IsAuthenticated,]
+
     def post(self, request, *args, **kwargs):
-        auth_header = str(request.headers.get('Authorization'))
-        if auth_header is None:
-            return Response(
-                {'error': 'Токен не валиден или пользователь не авторизован'},
-            )
-        decoded_data = AccessToken(
-            auth_header
-        )
-        user_id = decoded_data['user_id']
-        user = User.objects.get(id=user_id)
+        user = request.user
 
         object_id = request.data.get('object_id')
         object_type = request.data.get('object_type')

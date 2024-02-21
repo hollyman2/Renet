@@ -10,11 +10,15 @@ from datetime import datetime, timedelta
 
 class Account(AbstractBaseUser, PermissionsMixin):
 
-    username = models.CharField(_("username"), max_length=50)
+    username = models.CharField(_("username"), max_length=50, unique=True)
     first_name = models.CharField(_("first_name"), max_length=50)
     last_name = models.CharField(_("last_name"), max_length=50)
     email = models.EmailField(_("email"), unique=True, max_length=254)
     password = models.CharField(_("password"), max_length=100)
+    count_of_followers = models.IntegerField(
+        _('count_of_followers'),
+        default=0,
+    )
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
@@ -100,4 +104,17 @@ class Profile(models.Model):
         verbose_name_plural = 'Profiles'
 
 
-
+class Follower(models.Model):
+    user = models.ForeignKey(
+        Account,
+        related_name='following',
+        on_delete=models.CASCADE,
+        verbose_name='Пользователь'
+    )
+    follower = models.ForeignKey(
+        Account,
+        related_name='followers',
+        on_delete=models.CASCADE,
+        verbose_name='Подписчик'
+    )
+    created = models.DateTimeField(auto_now_add=True)
