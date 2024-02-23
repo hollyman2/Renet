@@ -1,6 +1,6 @@
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
-from .models import Like, Post, Comment, ReplyComment
+from .models import Like, Post, Comment, ReplyComment, Tag
 
 
 @receiver(post_save, sender=Like)
@@ -28,3 +28,10 @@ def update_likes_count_on_delete(sender, instance, **kwargs):
     elif instance.reply_comment:
         instance.reply_comment.count_of_likes = instance.reply_comment.get_reply_comment_likes.count()
         instance.reply_comment.save()
+
+
+@receiver(pre_save, sender=Tag)
+def add_hashtag_to_tag_name(sender, instance, **kwargs):
+    if not instance.name.startswith("#"):
+        instance.name = "#" + instance.name
+        

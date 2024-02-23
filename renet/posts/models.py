@@ -4,11 +4,21 @@ from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.urls import reverse
-from taggit.managers import TaggableManager
+
 
 Account = get_user_model()
 
+class Tag(models.Model):
+    name = models.CharField(max_length=50, unique=True)
 
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        db_table = 'tag'
+        verbose_name = 'Tag'
+        verbose_name_plural = 'Tags'
+    
 class Post(models.Model):
     VIDEO_VALIDATOR = FileExtensionValidator(allowed_extensions=['mp4', ])
 
@@ -17,6 +27,14 @@ class Post(models.Model):
         primary_key=True,
         default=uuid.uuid4,
         editable=False
+    )
+    tags = models.ForeignKey(
+        Tag,
+        on_delete=models.CASCADE,
+        related_name='get_tags',
+        verbose_name='Tag',
+        null=True,
+        blank=True,
     )
     picture = models.ImageField(
         'Picture',
@@ -39,7 +57,6 @@ class Post(models.Model):
         'Count of likes',
         default=0
     )
-    tags = TaggableManager(blank=True)
     author = models.ForeignKey(
         Account,
         on_delete=models.CASCADE,
@@ -81,6 +98,9 @@ class Comment(models.Model):
     count_of_likes = models.IntegerField(
         'Count of likes',
         default=0
+    )
+    edited = models.BooleanField(
+        default=False
     )
 
     def __str__(self):
@@ -140,3 +160,19 @@ class Like(models.Model):
 
     def __str__(self):
         return self.user.username
+
+class FriendRequest(models.Model):
+    author = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='get_request_creator',
+        verbose_name='Request author'
+    )
+    recipient = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='get_request_recipient',
+        verbose_name='Request recipient'
+    )
+    
+
