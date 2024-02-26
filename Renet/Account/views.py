@@ -2,7 +2,7 @@ from django.contrib.auth import login, get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404, get_list_or_404
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from rest_framework import status
@@ -13,11 +13,32 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken, UntypedToken, AccessToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-
+from .models import Profile, FriendRequest
 from . import serializers
 
 User = get_user_model()
 
+
+def get_user(request):
+    auth_header = str(request.headers.get('Authorization'))
+    if auth_header is None:
+        return Response(
+            {'error': 'Токен не валиден или пользователь не авторизован'},
+        )
+    
+    try:
+        decoded_data = AccessToken(
+            auth_header
+        )
+        user_id = decoded_data['user_id']
+        user = User.objects.get(id=user_id)
+
+        return user
+    
+    except: 
+
+        return None
+    
 
 class SignUpAPIView(APIView):
     """
@@ -325,3 +346,191 @@ class AddFollowerAPIView(APIView):
             else:
                 return Response({"error": "Вы не можете подписаться на самого себя."}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MyProfileView(APIView):
+    def get(self, request):
+        user = get_user(request)
+        user_serializer = serializers.SignupSerializer(user)
+        if user is not None:
+            try:
+                profile = get_object_or_404(Profile, user=user)
+                profile_serializer = serializers.ProfileSerializer(profile)
+
+            except:
+
+                return Response({'message': 'Create profile'})
+
+            return Response(
+                {
+                    'user': user_serializer.data,
+                    'profile': profile_serializer.data
+                },
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response({"error": "Вы должны сначала зарегестрироваться"})
+    
+
+class ProfileCreateView(APIView):
+
+    def post(self, request):
+        user = get_user(request=request)
+        try:
+            profile = get_object_or_404(Profile, user=user)
+            return Response({"error": "У пользователя уже есть профиль"})
+        except:
+            serializer = serializers.ProfileSerializer()
+            serializer = serializers.ProfileSerializer(
+                serializer.create(
+                    request.data,
+                    user=user
+                )
+            )
+
+            return Response(
+                {'post': serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+            
+
+class ProfileEditView(APIView):
+
+    def post(self, request):
+        user = get_user(request=request)
+        try:
+            profile = get_object_or_404(Profile, user=user)
+            serializer = serializers.ProfileSerializer(profile)
+       
+            if user.id == serializer.data.get('user'):
+
+                serializer = serializers.ProfileSerializer(
+                    serializer.edit(
+                        profile=profile,
+                        data=request.data,
+                    )
+                )
+
+                return Response(
+                    {'profile': serializer.data},
+                    status=status.HTTP_200_OK
+                )
+            else:
+                return Response(
+                    {'error': 'Вы не являетесь владельцем'}
+                )
+        except: 
+            return Response(
+                    {'error': 'Вы должны сначала создать'}
+                )
+
+
+class ProfileDetailView(APIView):
+    def get(self, request, id):
+        try:
+            profile = get_object_or_404(Profile, id=id)
+            serializer = serializers.ProfileSerializer(profile)
+
+            return Response(
+                    {'profile': serializer.data},
+                    status=status.HTTP_200_OK
+                )
+        except:
+
+            return Response(
+                    {'error': 'Данного профиля не существует'}
+                )
+        
+class SendFriendRequstView(APIView):
+    def post(self, request, id):
+        user = get_user(request=request)
+        try:
+            profile = get_object_or_404(Profile, id=id)
+            profile_serializer = serializers.ProfileSerializer(profile)
+            recipient_id = profile_serializer.data.get('user')
+            if recipient_id == user.id:
+                return Response(
+                    {'error': 'Вы не можете отправлять заявку самому себе'}
+                )
+
+            recipient = get_object_or_404(User, id=recipient_id)
+            try:
+                friend_request = get_object_or_404(FriendRequest, author=user, recipient=recipient)
+                return Response({"error": "Вы уже отправили заявку в друзья"})
+            except:
+
+                serializer = serializers.FriendRequestSerializer()
+        
+                serializer = serializers.FriendRequestSerializer(
+                    serializer.create(
+                        author=user,
+                        recipient=recipient,
+                    )
+                )
+                print('wefe')
+
+                return Response(
+                    {'friend request': serializer.data},
+                    status=status.HTTP_201_CREATED
+                )
+        except:
+
+            return Response(
+                    {'error': 'Данного профиля не существует'}
+                )
+
+class ProfileFrendRequestsView(APIView):
+    def get(self, request):
+        user = get_user(request=request)
+        try:
+            
+            friend_request = get_list_or_404(FriendRequest, recipient=user)
+            serializer = serializers.FriendRequestSerializer(friend_request, many=True)
+                
+            
+                
+            return Response(
+                    {'friend requests': serializer.data},
+                    status=status.HTTP_200_OK
+                )
+        except:
+
+            return Response(
+                    {'message': 'Вы еще не получили ни одной заявки в друзья'}
+                )
+        
+class AnswerFrendRequestsView(APIView):
+    def post(self, request, id):
+            user = get_user(request=request)
+        # try:
+            profile = get_object_or_404(Profile, user=user)
+            friend_request = get_object_or_404(FriendRequest, recipient=user, id=id)
+            print(friend_request)
+           
+        
+            if request.data.get('answer').lower() == 'yes':
+                
+           
+                profile.friends.add(friend_request.author)
+                
+                # friend_request.delete()
+                return Response(
+                    {'message': 'Вы приняли приглашение в друзья'}
+                )
+            if request.data.get('answer').lower() == 'no':
+                # friend_request.delete()
+                return Response(
+                    {'message': 'Вы приняли отклонили заявку в друзья'}
+                )
+        # except:
+
+        #     return Response(
+        #             {'error': 'Ответ неккоректен либо данной заявки не существует '}
+        #         )
+    def get(self, request, id):
+        return Response(
+                    {'message': 'Ответьте на запрос в друзья в формате: yes or no'}
+                )
+
+
+

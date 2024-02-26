@@ -4,8 +4,7 @@ from django.core.validators import EmailValidator
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
-from Account.models import Follower
+from .models import Profile, Follower, FriendRequest
 
 Account = get_user_model()
 
@@ -71,3 +70,57 @@ class FollowerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Follower
         fields = ['user', 'follower']
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = [
+            'user',
+            'picture',
+            'banner',
+            'description',
+            'age',
+            'friends',
+            'id'
+        ]
+
+    def create(self, data, user):
+
+        profile = Profile.objects.create(
+            user=user,
+            picture=data.get('picture'),
+            banner=data.get('banner'),
+            description=data.get('description'),
+            age=data.get('age'),
+        )
+        return profile
+    
+    def edit(self, profile, data):
+
+        
+        profile.picture=data.get('picture')
+        profile.banner=data.get('banner')
+        profile.description=data.get('description')
+        profile.age=data.get('age')
+        profile.save()
+
+        return profile
+
+class FriendRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FriendRequest
+        fields = [
+            'author',
+            'recipient',
+            'created',
+            'id'
+        ]
+    
+    def create(self, author, recipient):
+
+        friend_request = FriendRequest.objects.create(
+            author=author,
+            recipient=recipient
+        )
+        
+        return friend_request

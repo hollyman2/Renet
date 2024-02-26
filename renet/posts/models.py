@@ -8,16 +8,6 @@ from django.urls import reverse
 
 Account = get_user_model()
 
-class Tag(models.Model):
-    name = models.CharField(max_length=50, unique=True)
-
-    def __str__(self):
-        return self.name
-    
-    class Meta:
-        db_table = 'tag'
-        verbose_name = 'Tag'
-        verbose_name_plural = 'Tags'
     
 class Post(models.Model):
     VIDEO_VALIDATOR = FileExtensionValidator(allowed_extensions=['mp4', ])
@@ -28,13 +18,10 @@ class Post(models.Model):
         default=uuid.uuid4,
         editable=False
     )
-    tags = models.ForeignKey(
-        Tag,
-        on_delete=models.CASCADE,
-        related_name='get_tags',
-        verbose_name='Tag',
-        null=True,
-        blank=True,
+    tags = models.CharField(
+        'Tags',
+        max_length=100,
+        default=''
     )
     picture = models.ImageField(
         'Picture',
@@ -161,18 +148,5 @@ class Like(models.Model):
     def __str__(self):
         return self.user.username
 
-class FriendRequest(models.Model):
-    author = models.ForeignKey(
-        Account,
-        on_delete=models.CASCADE,
-        related_name='get_request_creator',
-        verbose_name='Request author'
-    )
-    recipient = models.ForeignKey(
-        Account,
-        on_delete=models.CASCADE,
-        related_name='get_request_recipient',
-        verbose_name='Request recipient'
-    )
     
 

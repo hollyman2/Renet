@@ -79,22 +79,36 @@ class Profile(models.Model):
     picture = models.ImageField(
         'Picture',
         upload_to='profiles_pictures/images/%Y/%m/%d/',
-        validators=[IMAGE_VALIDATOR,]
+        validators=[IMAGE_VALIDATOR,],
+        null=True,
+        blank=True,
     )
     banner = models.ImageField(
         'Banner',
         upload_to='profiles_pictures/images/%Y/%m/%d/',
-        validators=[IMAGE_VALIDATOR,]
+        validators=[IMAGE_VALIDATOR,],
+        null=True,
+        blank=True,
     )
     description = models.TextField(
         'Description',
         max_length=255
     )
+    friends = models.ManyToManyField(
+        Account,
+        related_name='frends',
+        blank=True,
+        verbose_name='Друзья'
+    )
     age = models.DecimalField(
         'Age',
-        decimal_places=3,
+        decimal_places=0,
         max_digits=100,
     )
+    # friends = models.ManyToManyField(
+    #     Account, 
+    #     on_delete=models.CASCADE,
+    # )
 
     def __str__(self):
         return self.user
@@ -116,5 +130,21 @@ class Follower(models.Model):
         related_name='followers',
         on_delete=models.CASCADE,
         verbose_name='Подписчик'
+    )
+    created = models.DateTimeField(auto_now_add=True)
+
+
+class FriendRequest(models.Model):
+    author = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='get_request_creator',
+        verbose_name='Request author'
+    )
+    recipient = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='get_request_recipient',
+        verbose_name='Request recipient'
     )
     created = models.DateTimeField(auto_now_add=True)

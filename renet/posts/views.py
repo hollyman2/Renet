@@ -34,7 +34,6 @@ def get_user(request):
         return None
         
 
-
 class LikeAPIView(APIView):
     def post(self, request, *args, **kwargs):
 
@@ -75,7 +74,6 @@ class PostsListView(APIView):
             {'post': post_serializer.data},
             status=status.HTTP_200_OK
         )
-
 
 
 class PostDetailView(APIView):
@@ -186,6 +184,7 @@ class EditCommentView(APIView):
 class DeletetPostView(APIView):
 
     def get(self, request, id):
+
         user = get_user(request=request)
         post = get_object_or_404(Post, id=id)
         post_serializer = serializers.PostSerializer(post)

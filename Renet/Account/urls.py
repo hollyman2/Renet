@@ -31,5 +31,12 @@ urlpatterns = [
         'add-follower/<str:username>/',
         views.AddFollowerAPIView.as_view(),
         name='add-follower'
-    )
+    ),
+    path('profile/', views.MyProfileView.as_view(), name='my_profile'),
+    path('profile/create/', views.ProfileCreateView.as_view(), name='profile_create'),
+    path('profile/edit/', views.ProfileEditView.as_view(), name='profile_edit'),
+    path('profiles/<id>/', views.ProfileDetailView.as_view(), name='profile_detail'),
+    path('profiles/<id>/sendfriendrequest/', views.SendFriendRequstView.as_view(), name='profile_send_friend_request'),
+    path('profile/friendrequests/', views.ProfileFrendRequestsView.as_view(), name='profile_friend_requests'),
+    path('profile/friendrequests/<id>/', views.AnswerFrendRequestsView.as_view(), name='answer_friend_requests'),
 ]
