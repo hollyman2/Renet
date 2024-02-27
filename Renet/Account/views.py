@@ -16,6 +16,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import Profile, FriendRequest
 from posts.models import Report
 from . import serializers
+from posts.serializers import ReportSerializer
 
 User = get_user_model()
 
@@ -546,20 +547,24 @@ class ReportProfileView(APIView):
         profile = get_object_or_404(Profile, id=id)
         profile_serializer = serializers.ProfileSerializer(profile)
         recipient = get_object_or_404(User, id=profile_serializer.data.get('user'))
+        if author.id == profile_serializer.user:
+            return Response(
+                    {'message': 'Вы не можете отправлять жалобу на самого себя'}
+                )
         try:
             report = get_object_or_404(Report, author=author, recipient=recipient)
             return Response(
                     {'message': 'Вы уже оправили жалобу на пользователя'}
                 )
         except:
-            serializer = serializers.ReportSerializer()
-            serializer = serializers.ReportSerializer(
-                serializer.create(
-                    request.data,
-                    author=author,
-                    recipient=recipient,
-                )
+            report = Report.objects.create(
+            author=author,
+            recipient=recipient,
+            reason=request.data.get('reason')
             )
+       
+            serializer = ReportSerializer(report)
+            
 
             return Response(
                     {'report': serializer.data},

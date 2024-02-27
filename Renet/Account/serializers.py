@@ -5,7 +5,7 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Profile, Follower, FriendRequest
-from posts.models import Report
+
 
 Account = get_user_model()
 
@@ -127,22 +127,3 @@ class FriendRequestSerializer(serializers.ModelSerializer):
         
         return friend_request
 
-class ReportSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Report
-        fields = [
-            'author',
-            'recipient',
-            'reason',
-            'created',
-            'id'
-        ]
-    def create(self, data, author, recipient):
-
-        report = Report.objects.create(
-            author=author,
-            recipient=recipient,
-            reason=data.get('reason')
-        )
-        return report

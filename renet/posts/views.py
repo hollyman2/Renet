@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from . import serializers
 from .models import Report
-from Account.serializers import ReportSerializer
+
 
 User = get_user_model()
 
@@ -84,13 +84,20 @@ class PostDetailView(APIView):
 
         post = get_object_or_404(Post, id=id)
         post_serializer = serializers.PostSerializer(post)
-        comments = get_list_or_404(Comment, post=post)
-        comment_serializer = serializers.CommentSerializer(comments, many=True)
-        return Response(
-            {'post': post_serializer.data,
-            'comments': comment_serializer.data},
-            status=status.HTTP_200_OK
-        )
+        try:
+            comments = get_list_or_404(Comment, post=post)
+            comment_serializer = serializers.CommentSerializer(comments, many=True)
+            return Response(
+                {'post': post_serializer.data,
+                'comments': comment_serializer.data},
+                status=status.HTTP_200_OK
+            )
+        except:
+            return Response(
+                {'post': post_serializer.data,
+                'comments': None},
+                status=status.HTTP_200_OK
+            )
     
     def patch(self, request, id):
         user = get_user(request=request)
@@ -135,6 +142,7 @@ class CreatePostView(APIView):
 
         user = get_user(request=request)
         serializer = serializers.PostSerializer()
+        
         serializer = serializers.PostSerializer(
             serializer.create(
                 request.data,
@@ -302,14 +310,21 @@ class ReportPostView(APIView):
 
         author = get_user(request)
         post = get_object_or_404(Post, id=id)
-        
+        post_serializer = serializers.PostSerializer(Post)  
         
         try:
             report = get_object_or_404(Report, post=post, author=author)
+            
             return Response(
                     {'message': 'Вы уже оправили жалобу на данный пост'}
                 )
         except:
+            
+            if author.id == post_serializer.data.get('author'):
+                return Response(
+                        {'message': 'Вы не можете отправлять жалобу на свой ответ'}
+                    )
+            print('fwe')
             report = Report.objects.create(
                 author=author,
                 post=post,
@@ -327,13 +342,19 @@ class ReportPostView(APIView):
 class ReportCommentView(APIView):
     def get(self, request, id, commentid):
         author = get_user(request)
-        comment = get_object_or_404(Comment, id=commentid)    
+        comment = get_object_or_404(Comment, id=commentid)   
+        comment_serializer = serializers.CommentSerializer(comment)  
+
         try:
             report = get_object_or_404(Report, comment=comment, author=author)
             return Response(
                     {'message': 'Вы уже оправили жалобу на данный комментарий'}
                 )
         except:
+            if author.id == comment_serializer.data.get('author'):
+                return Response(
+                        {'message': 'Вы не можете отправлять жалобу на свой ответ'}
+                    )
             report = Report.objects.create(
                 author=author,
                 comment=comment,
@@ -351,13 +372,18 @@ class ReportCommentView(APIView):
 class ReportAnswerView(APIView):
     def get(self, request, id, commentid, answerid):
         author = get_user(request)
-        answer = get_object_or_404(Comment, id=answerid)    
+        answer = get_object_or_404(Comment, id=answerid)  
+        answer_serializer = serializers.AnswerSerializer(answer)  
         try:
             report = get_object_or_404(Report, answer=answer, author=author)
             return Response(
                     {'message': 'Вы уже оправили жалобу на данный ответ на комментарий'}
                 )
         except:
+            if author.id == answer_serializer.data.get('author'):
+                return Response(
+                        {'message': 'Вы не можете отправлять жалобу на свой ответ'}
+                    )
             report = Report.objects.create(
                 author=author,
                 answer=answer,

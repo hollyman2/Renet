@@ -1,5 +1,5 @@
 from rest_framework.serializers import ModelSerializer
-from .models import Post, Comment, ReplyComment
+from .models import Post, Comment, ReplyComment, Report
 
 
 class PostSerializer(ModelSerializer):
@@ -24,14 +24,14 @@ class PostSerializer(ModelSerializer):
         post.picture=data.get('picture')
         post.video=data.get('video')
         post.description=data.get('description')
-        if data.get('tags'):
-            post.tags=data.get('tags')
+        
+        post.tags=data.get('tags')
         post.edited=True
         post.save()
         
         print(post)
 
-        return {'post': post}
+        return post
 
     def create(self, data, user):
         print(user)
@@ -41,9 +41,9 @@ class PostSerializer(ModelSerializer):
             picture=data.get('picture'),
             video=data.get('video'),
             description=data.get('description'),
-            # tags=data.get('tags'),
+            tags=data.get('tags'),
         )
-        return {'post': post}
+        return post
 
 
 class CommentSerializer(ModelSerializer):
@@ -67,7 +67,7 @@ class CommentSerializer(ModelSerializer):
         comment.save()
         
 
-        return {'comment': comment}
+        return comment
 
     def create(self, data, user, post):
 
@@ -77,7 +77,7 @@ class CommentSerializer(ModelSerializer):
             description=data.get('description'),
         )
         
-        return {'comment': comment}
+        return comment
 
 
 class AnswerSerializer(ModelSerializer):
@@ -112,4 +112,20 @@ class AnswerSerializer(ModelSerializer):
         answer.save() 
         
 
-        return {'answer': answer}
+        return  answer
+
+class ReportSerializer(ModelSerializer):
+
+    class Meta:
+        model = Report
+        fields = [
+            'author',
+            'recipient',
+            'post',
+            'comment',
+            'answer',
+            'reason',
+            'created',
+            'id'
+        ]
+    
