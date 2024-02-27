@@ -7,7 +7,6 @@ from .manager import CustomUserManager
 from django.conf import settings
 from datetime import datetime, timedelta
 
-
 class Account(AbstractBaseUser, PermissionsMixin):
 
     username = models.CharField(_("username"), max_length=50, unique=True)
@@ -135,6 +134,16 @@ class Follower(models.Model):
 
 
 class FriendRequest(models.Model):
+    SENT = 'sent'
+    ACCEPTED = 'accepted'
+    REJECTED = 'rejected'
+
+    STATUS_CHOICES = (
+        (SENT, 'Sent'),
+        (ACCEPTED, 'Accepted'),
+        (REJECTED, 'Rejected'),
+    )
+
     author = models.ForeignKey(
         Account,
         on_delete=models.CASCADE,
@@ -147,4 +156,10 @@ class FriendRequest(models.Model):
         related_name='get_request_recipient',
         verbose_name='Request recipient'
     )
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default=SENT,
+    )
     created = models.DateTimeField(auto_now_add=True)
+

@@ -1,5 +1,4 @@
 import uuid
-
 from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator
 from django.db import models
@@ -150,3 +149,47 @@ class Like(models.Model):
 
     
 
+class Report(models.Model):
+    author = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='report_creator',
+        verbose_name='Report author'
+    )
+    recipient = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='report_recipient',
+        verbose_name='Report recipient',
+        null=True,
+        blank=True
+    )
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name='report_post',
+        verbose_name='Report post',
+        null=True,
+        blank=True
+    )
+    comment = models.ForeignKey(
+        Comment,
+        on_delete=models.CASCADE,
+        related_name='report_comment',
+        verbose_name='Report comment',
+        null=True,
+        blank=True
+    )
+    answer = models.ForeignKey(
+        ReplyComment,
+        on_delete=models.CASCADE,
+        related_name='report_answer',
+        verbose_name='Report answer',
+        null=True,
+        blank=True
+    )
+    reason = models.CharField(
+        'Reason',
+        max_length=255
+    )
+    created = models.DateTimeField(auto_now_add=True)

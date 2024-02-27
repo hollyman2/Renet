@@ -10,6 +10,8 @@ from .models import Post, Comment, ReplyComment
 from rest_framework.response import Response
 from rest_framework import status
 from . import serializers
+from .models import Report
+from Account.serializers import ReportSerializer
 
 User = get_user_model()
 
@@ -89,11 +91,8 @@ class PostDetailView(APIView):
             'comments': comment_serializer.data},
             status=status.HTTP_200_OK
         )
-
-
-class EditPostView(APIView):
-
-    def post(self, request, id):
+    
+    def patch(self, request, id):
         user = get_user(request=request)
         post = get_object_or_404(Post, id=id)
         serializer = serializers.PostSerializer(post)
@@ -107,6 +106,22 @@ class EditPostView(APIView):
             return Response(
                 {'post': serializer.data},
                 status=status.HTTP_200_OK
+            )
+        else:
+            return Response(
+                {'error': 'You are not the owner'}
+            )
+        
+    def delete(self, request, id):
+
+        user = get_user(request=request)
+        post = get_object_or_404(Post, id=id)
+        post_serializer = serializers.PostSerializer(post)
+        if user.id == post_serializer.data.get('author'):
+            post.delete()
+            return Response(
+                {'message': 'The post has been deleted'},
+                status=status.HTTP_200_OK,
             )
         else:
             return Response(
@@ -154,11 +169,41 @@ class CreateCommentView(APIView):
             {'comment': serializer.data},
             status=status.HTTP_201_CREATED
            )
-        
-        
-class EditCommentView(APIView):
 
-    def post(self, request, id, commentid):
+
+class DetailCommentView(APIView):
+
+    def get(self, request, id, commentid):
+
+        comment = get_object_or_404(Comment, id=commentid)
+        answers = get_list_or_404(ReplyComment, comment=comment)
+        comment_serializer = serializers.CommentSerializer(comment)
+        answers_serializer = serializers.AnswerSerializer(answers, many=True)
+        return Response(
+            {'comments': comment_serializer.data,
+             'answers': answers_serializer.data},
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, id, commentid):
+        user = get_user(request=request)
+        comment = get_object_or_404(Comment, id=commentid)
+        comment_serializer = serializers.CommentSerializer(comment)
+        if user.id == comment_serializer.data.get('author'):
+            comment.delete()
+
+            return Response(
+                {'message': 'The comment has been deleted'},
+                status=status.HTTP_200_OK,
+
+            )
+        else:
+
+            return Response(
+                {'error': 'You are not the owner'}
+            )
+
+    def patch(self, request, id, commentid):
         user = get_user(request=request)
         comment = get_object_or_404(Comment, id=commentid)
         serializer = serializers.CommentSerializer(comment)
@@ -178,64 +223,7 @@ class EditCommentView(APIView):
         else:
             return Response(
                 {'error': 'You are not the owner'}
-            )
-
-
-class DeletetPostView(APIView):
-
-    def get(self, request, id):
-
-        user = get_user(request=request)
-        post = get_object_or_404(Post, id=id)
-        post_serializer = serializers.PostSerializer(post)
-        if user.id == post_serializer.data.get('author'):
-            post.delete()
-            return Response(
-                {'message': 'The post has been deleted'},
-                status=status.HTTP_200_OK,
-            )
-        else:
-            return Response(
-                {'error': 'You are not the owner'}
-            )
-
-
-class DeletetCommentView(APIView):
-
-    def get(self, request, id, commentid):
-        user = get_user(request=request)
-        comment = get_object_or_404(Comment, id=commentid)
-        comment_serializer = serializers.CommentSerializer(comment)
-        if user.id == comment_serializer.data.get('author'):
-            comment.delete()
-
-            return Response(
-                {'message': 'The comment has been deleted'},
-                status=status.HTTP_200_OK,
-
-            )
-        else:
-
-            return Response(
-                {'error': 'You are not the owner'}
-            )
-
-
-class DetailCommentView(APIView):
-
-    def get(self, request, id, commentid):
-
-        comment = get_object_or_404(Comment, id=commentid)
-        answers = get_list_or_404(ReplyComment, comment=comment)
-        comment_serializer = serializers.CommentSerializer(comment)
-        answers_serializer = serializers.AnswerSerializer(answers, many=True)
-        return Response(
-            {'comments': comment_serializer.data,
-             'answers': answers_serializer.data},
-            status=status.HTTP_200_OK,
-        )
-
-
+            ) 
 class CreateAnswerView(APIView):
 
     def post(self, request, id, commentid):
@@ -259,11 +247,18 @@ class CreateAnswerView(APIView):
             },
             status=status.HTTP_201_CREATED
         )
-    
 
-class DeleteAnswerView(APIView):
-
+class  DetailAnswerView(APIView):
     def get(self, request, id, commentid, answerid):
+       
+        answer = get_object_or_404(ReplyComment, id=answerid)
+        answer_serializer = serializers.AnswerSerializer(answer)
+
+        return Response(
+                {'answer': answer_serializer.data},
+                status = status.HTTP_200_OK
+            )
+    def delete(self, request, id, commentid, answerid):
         user = get_user(request=request)
         answer = get_object_or_404(ReplyComment, id=answerid)
         answer_serializer = serializers.AnswerSerializer(answer)
@@ -279,11 +274,7 @@ class DeleteAnswerView(APIView):
             return Response(
                 {'error': 'You are not the owner'}
             )
-
-
-class EditAnswerView(APIView):
-
-    def post(self, request, id, commentid, answerid):
+    def patch(self, request, id, commentid, answerid):
         user = get_user(request=request)
         answer = get_object_or_404(ReplyComment, id=answerid)
         answer_serializer = serializers.AnswerSerializer(answer)
@@ -304,5 +295,79 @@ class EditAnswerView(APIView):
             return Response(
                 {'error': 'You are not the owner'}
             )
+    
 
+class ReportPostView(APIView):
+    def post(self, request, id):
 
+        author = get_user(request)
+        post = get_object_or_404(Post, id=id)
+        
+        
+        try:
+            report = get_object_or_404(Report, post=post, author=author)
+            return Response(
+                    {'message': 'Вы уже оправили жалобу на данный пост'}
+                )
+        except:
+            report = Report.objects.create(
+                author=author,
+                post=post,
+                reason=request.data.get('reason'),
+            )
+            serializer = serializers.ReportSerializer(report)
+            
+            
+
+            return Response(
+                    {'report': serializer.data},
+                    status=status.HTTP_201_CREATED
+                )
+        
+class ReportCommentView(APIView):
+    def get(self, request, id, commentid):
+        author = get_user(request)
+        comment = get_object_or_404(Comment, id=commentid)    
+        try:
+            report = get_object_or_404(Report, comment=comment, author=author)
+            return Response(
+                    {'message': 'Вы уже оправили жалобу на данный комментарий'}
+                )
+        except:
+            report = Report.objects.create(
+                author=author,
+                comment=comment,
+                reason=request.data.get('reason'),
+            )
+            serializer = serializers.ReportSerializer(report)
+            
+            
+
+            return Response(
+                    {'report': serializer.data},
+                    status=status.HTTP_201_CREATED
+                )
+    
+class ReportAnswerView(APIView):
+    def get(self, request, id, commentid, answerid):
+        author = get_user(request)
+        answer = get_object_or_404(Comment, id=answerid)    
+        try:
+            report = get_object_or_404(Report, answer=answer, author=author)
+            return Response(
+                    {'message': 'Вы уже оправили жалобу на данный ответ на комментарий'}
+                )
+        except:
+            report = Report.objects.create(
+                author=author,
+                answer=answer,
+                reason=request.data.get('reason'),
+            )
+            serializer = serializers.ReportSerializer(report)
+            
+            
+
+            return Response(
+                    {'report': serializer.data},
+                    status=status.HTTP_201_CREATED
+                )

@@ -14,6 +14,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken, UntypedToken, AccessToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import Profile, FriendRequest
+from posts.models import Report
 from . import serializers
 
 User = get_user_model()
@@ -467,7 +468,7 @@ class SendFriendRequstView(APIView):
                         recipient=recipient,
                     )
                 )
-                print('wefe')
+        
 
                 return Response(
                     {'friend request': serializer.data},
@@ -503,24 +504,28 @@ class AnswerFrendRequestsView(APIView):
     def post(self, request, id):
             user = get_user(request=request)
         # try:
-            profile = get_object_or_404(Profile, user=user)
+            recipient_profile = get_object_or_404(Profile, user=user)
             friend_request = get_object_or_404(FriendRequest, recipient=user, id=id)
-            print(friend_request)
+            author_profile = get_object_or_404(Profile, user=friend_request.recipient)
            
         
             if request.data.get('answer').lower() == 'yes':
-                
-           
-                profile.friends.add(friend_request.author)
-                
-                # friend_request.delete()
+        
+                friend_request.status = 'accepted'
+                friend_request.save()
+                author_profile.friends.add(user)
+                recipient_profile.friends.add(friend_request.author)
+
                 return Response(
                     {'message': 'Вы приняли приглашение в друзья'}
                 )
             if request.data.get('answer').lower() == 'no':
-                # friend_request.delete()
+
+                friend_request.status = 'accepted'
+                friend_request.save()
+
                 return Response(
-                    {'message': 'Вы приняли отклонили заявку в друзья'}
+                    {'message': 'Вы отклонили заявку в друзья'}
                 )
         # except:
 
@@ -533,4 +538,31 @@ class AnswerFrendRequestsView(APIView):
                 )
 
 
+
+class ReportProfileView(APIView):
+    def post(self, request, id):
+
+        author = get_user(request)
+        profile = get_object_or_404(Profile, id=id)
+        profile_serializer = serializers.ProfileSerializer(profile)
+        recipient = get_object_or_404(User, id=profile_serializer.data.get('user'))
+        try:
+            report = get_object_or_404(Report, author=author, recipient=recipient)
+            return Response(
+                    {'message': 'Вы уже оправили жалобу на пользователя'}
+                )
+        except:
+            serializer = serializers.ReportSerializer()
+            serializer = serializers.ReportSerializer(
+                serializer.create(
+                    request.data,
+                    author=author,
+                    recipient=recipient,
+                )
+            )
+
+            return Response(
+                    {'report': serializer.data},
+                    status=status.HTTP_201_CREATED
+                )
 
