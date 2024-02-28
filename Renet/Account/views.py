@@ -361,7 +361,7 @@ class MyProfileView(APIView):
 
             except:
 
-                return Response({'message': 'Create profile'})
+                return Response({'message': 'Вы еще не создали профиль'})
 
             return Response(
                 {
@@ -458,6 +458,8 @@ class SendFriendRequstView(APIView):
             recipient = get_object_or_404(User, id=recipient_id)
             try:
                 friend_request = get_object_or_404(FriendRequest, author=user, recipient=recipient)
+                friend_request = get_object_or_404(FriendRequest, author=recipient, recipient=user)
+
                 return Response({"error": "Вы уже отправили заявку в друзья"})
             except:
 
@@ -503,11 +505,12 @@ class ProfileFrendRequestsView(APIView):
         
 class AnswerFrendRequestsView(APIView):
     def post(self, request, id):
-            user = get_user(request=request)
-        # try:
-            recipient_profile = get_object_or_404(Profile, user=user)
+        user = get_user(request=request)
+        try:
+            
             friend_request = get_object_or_404(FriendRequest, recipient=user, id=id)
-            author_profile = get_object_or_404(Profile, user=friend_request.recipient)
+            author_profile = get_object_or_404(Profile, author=friend_request.author)
+            recipient_profile = get_object_or_404(Profile, user=friend_request.recipient)
            
         
             if request.data.get('answer').lower() == 'yes':
@@ -515,24 +518,25 @@ class AnswerFrendRequestsView(APIView):
                 friend_request.status = 'accepted'
                 friend_request.save()
                 author_profile.friends.add(user)
-                recipient_profile.friends.add(friend_request.author)
+                recipient_profile(author_profile.user)
+               
 
                 return Response(
                     {'message': 'Вы приняли приглашение в друзья'}
                 )
             if request.data.get('answer').lower() == 'no':
 
-                friend_request.status = 'accepted'
+                friend_request.status = 'reject'
                 friend_request.save()
 
                 return Response(
                     {'message': 'Вы отклонили заявку в друзья'}
                 )
-        # except:
+        except:
 
-        #     return Response(
-        #             {'error': 'Ответ неккоректен либо данной заявки не существует '}
-        #         )
+            return Response(
+                    {'error': 'Ответ неккоректен либо данной заявки не существует '}
+                )
     def get(self, request, id):
         return Response(
                     {'message': 'Ответьте на запрос в друзья в формате: yes or no'}
@@ -570,4 +574,3 @@ class ReportProfileView(APIView):
                     {'report': serializer.data},
                     status=status.HTTP_201_CREATED
                 )
-

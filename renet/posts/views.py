@@ -87,17 +87,15 @@ class PostDetailView(APIView):
         try:
             comments = get_list_or_404(Comment, post=post)
             comment_serializer = serializers.CommentSerializer(comments, many=True)
-            return Response(
-                {'post': post_serializer.data,
-                'comments': comment_serializer.data},
-                status=status.HTTP_200_OK
-            )
+            data = comment_serializer.data
         except:
-            return Response(
-                {'post': post_serializer.data,
-                'comments': None},
-                status=status.HTTP_200_OK
-            )
+            data = None
+        
+        return Response(
+            {'post': post_serializer.data,
+            'comments': data},
+            status=status.HTTP_200_OK
+        )
     
     def patch(self, request, id):
         user = get_user(request=request)
@@ -184,12 +182,16 @@ class DetailCommentView(APIView):
     def get(self, request, id, commentid):
 
         comment = get_object_or_404(Comment, id=commentid)
-        answers = get_list_or_404(ReplyComment, comment=comment)
         comment_serializer = serializers.CommentSerializer(comment)
-        answers_serializer = serializers.AnswerSerializer(answers, many=True)
+        try:
+            answers = get_list_or_404(ReplyComment, comment=comment)
+            answers_serializer = serializers.AnswerSerializer(answers, many=True)
+            data = answers_serializer.data
+        except:
+            data = None
         return Response(
             {'comments': comment_serializer.data,
-             'answers': answers_serializer.data},
+             'answers': data},
             status=status.HTTP_200_OK,
         )
 
@@ -310,7 +312,7 @@ class ReportPostView(APIView):
 
         author = get_user(request)
         post = get_object_or_404(Post, id=id)
-        post_serializer = serializers.PostSerializer(Post)  
+        post_serializer = serializers.PostSerializer(post)  
         
         try:
             report = get_object_or_404(Report, post=post, author=author)
@@ -319,20 +321,21 @@ class ReportPostView(APIView):
                     {'message': 'Вы уже оправили жалобу на данный пост'}
                 )
         except:
-            
+
             if author.id == post_serializer.data.get('author'):
+
                 return Response(
-                        {'message': 'Вы не можете отправлять жалобу на свой ответ'}
+                        {'message': 'Вы не можете отправлять жалобу на свой пост'}
                     )
-            print('fwe')
+    
             report = Report.objects.create(
                 author=author,
                 post=post,
                 reason=request.data.get('reason'),
             )
             serializer = serializers.ReportSerializer(report)
-            
-            
+
+
 
             return Response(
                     {'report': serializer.data},
@@ -340,7 +343,7 @@ class ReportPostView(APIView):
                 )
         
 class ReportCommentView(APIView):
-    def get(self, request, id, commentid):
+    def post(self, request, id, commentid):
         author = get_user(request)
         comment = get_object_or_404(Comment, id=commentid)   
         comment_serializer = serializers.CommentSerializer(comment)  
@@ -370,10 +373,11 @@ class ReportCommentView(APIView):
                 )
     
 class ReportAnswerView(APIView):
-    def get(self, request, id, commentid, answerid):
+    def post(self, request, id, commentid, answerid):
         author = get_user(request)
-        answer = get_object_or_404(Comment, id=answerid)  
+        answer = get_object_or_404(ReplyComment, id=answerid)
         answer_serializer = serializers.AnswerSerializer(answer)  
+        print('rge')
         try:
             report = get_object_or_404(Report, answer=answer, author=author)
             return Response(
